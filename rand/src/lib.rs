@@ -31,3 +31,20 @@ impl Rng {
         self.next() as f64 / (1u64 << 32) as f64
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::Rng;
+    use std::fs::File;
+    use std::io::prelude::*;
+
+    #[test]
+    fn sample() {
+        let mut rng = Rng::new();
+        let mut file = File::create("uniform_samples.txt").unwrap();
+        for _ in 0..10000 {
+            let ln = format!("{}\n", rng.next_float());
+            file.write_all(ln.as_bytes()).unwrap();
+        }
+    }
+}
