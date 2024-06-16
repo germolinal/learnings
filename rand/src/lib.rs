@@ -41,7 +41,7 @@ mod tests {
     #[test]
     fn sample() {
         let mut rng = Rng::new();
-        let mut file = File::create("uniform_samples.txt").unwrap();
+        let mut file = File::create("data/uniform_samples.txt").unwrap();
         for _ in 0..10000 {
             let ln = format!("{}\n", rng.next_float());
             file.write_all(ln.as_bytes()).unwrap();

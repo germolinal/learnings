@@ -108,7 +108,7 @@ mod tests {
     #[test]
     fn pdf() {
         let c = DiscretePdf::new(0.0, vec![0.45, 0.55, 1.0], vec![0.1, 9.1, 0.1]);
-        let mut file = File::create("pdf.csv").unwrap();
+        let mut file = File::create("data/pdf.csv").unwrap();
         file.write_all(b"x, pdf\n").unwrap();
         for x in 0..100 {
             let x = x as f64 / 100.0;
@@ -120,7 +120,7 @@ mod tests {
     #[test]
     fn cumulative_pdf() {
         let c = DiscretePdf::new(0.0, vec![0.45, 0.55, 1.0], vec![0.1, 9.1, 0.1]);
-        let mut file = File::create("cdf.csv").unwrap();
+        let mut file = File::create("data/cdf.csv").unwrap();
         file.write_all(b"x,CDF,PDF\n").unwrap();
         for x in 0..100 {
             let x = x as f64 / 100.0;
@@ -133,7 +133,7 @@ mod tests {
     #[test]
     fn inv_cumulative_pdf() {
         let c = DiscretePdf::new(0.0, vec![0.45, 0.55, 1.0], vec![0.1, 9.1, 0.1]);
-        let mut file = File::create("inv_cdf.csv").unwrap();
+        let mut file = File::create("data/inv_cdf.csv").unwrap();
         file.write_all(b"x,CDF-1,PDF\n").unwrap();
         for x in 0..100 {
             let x = x as f64 / 100.0;
@@ -147,7 +147,7 @@ mod tests {
     fn sample_pdf() {
         let c = DiscretePdf::new(0.0, vec![0.45, 0.55, 1.0], vec![0.1, 9.1, 0.1]);
         let mut rng = Rng::new();
-        let mut file = File::create("samples.txt").unwrap();
+        let mut file = File::create("data/samples.txt").unwrap();
         for _ in 0..8000 {
             let (x, _pdf) = c.sample(&mut rng);
             let ln = format!("{}\n", x);

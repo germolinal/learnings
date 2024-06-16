@@ -35,11 +35,16 @@ impl MontecarloIntegrable for Importance {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs::File;
+    use std::io::prelude::*;
 
     #[test]
     fn importance_sampling() {
         // Sample from 0 to 1
-        println!("N,Uniform,Importance");
+        let mut file = File::create("data/importance_montecarlo.csv").unwrap();
+        file.write_all(b"N,Uniform,Importance,Bad Importance\n")
+            .unwrap();
+
         for pow in 1..22 {
             let n = (2 as usize).pow(pow) as usize;
 
@@ -53,7 +58,17 @@ mod tests {
             };
             let found_imp = imp.integrate(n, rng);
 
-            println!("{},{:.3},{:.3}", pow, found_uni, found_imp);
+            let rng = Rng::new();
+            let bad_imp = Importance {
+                pdf: DiscretePdf::new(0.0, vec![0.45, 0.55, 1.0], vec![1.1, 0.1, 1.1]),
+            };
+            let found_bad_imp = bad_imp.integrate(n, rng);
+
+            let ln = format!(
+                "{},{:.3},{:.3},{:.3}\n",
+                pow, found_uni, found_imp, found_bad_imp
+            );
+            file.write_all(ln.as_bytes()).unwrap();
         }
     }
 }
