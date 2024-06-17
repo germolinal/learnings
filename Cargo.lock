@@ -24,3 +24,11 @@ dependencies = [
  "rand",
  "video1-sampling",
 ]
+
+[[package]]
+name = "video3-russian-roulette"
+version = "0.1.0"
+dependencies = [
+ "rand",
+ "video1-sampling",
+]

@@ -1,11 +1,10 @@
 [package]
-name = "learning"
+name = "video3-russian-roulette"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[workspace]
-members = ["rand", "video1-sampling", "video2-montecarlo", "video3-russian-roulette"]
-
 
 [dependencies]
+rand = { path = "../rand" }
+video1-sampling = { path = "../video1-sampling" }

@@ -2,20 +2,17 @@ use crate::montecarlo_integrable::MontecarloIntegrable;
 use rand::Rng;
 use video1_sampling::step_pdf::DiscretePdf;
 
-struct ABPdfSingle {
+struct MISSingle {
     a: DiscretePdf,
     b: DiscretePdf,
     sampling: DiscretePdf,
 }
 
-impl MontecarloIntegrable for ABPdfSingle {
+impl MontecarloIntegrable for MISSingle {
     type T = f64;
 
     fn sample(&self, rng: &mut Rng) -> (Self::T, f64) {
         let ret = self.sampling.sample(rng);
-        if ret.0.is_nan() || ret.1.is_nan() || ret.1 < 1e-7 {
-            dbg!(ret);
-        }
         ret
     }
 
@@ -28,6 +25,7 @@ impl MontecarloIntegrable for ABPdfSingle {
     }
 }
 
+#[allow(dead_code)]
 enum MISHeuristic {
     Balance,
     Power,
@@ -114,6 +112,36 @@ mod tests {
         );
         let uniform = DiscretePdf::new(0.0, vec![1.0], vec![1.]);
 
+        let uni = MISSingle {
+            a: fa.clone(),
+            b: fb.clone(),
+            sampling: uniform.clone(),
+        };
+        let a = MISSingle {
+            a: fa.clone(),
+            b: fb.clone(),
+            sampling: fa.clone(),
+        };
+        let b = MISSingle {
+            a: fa.clone(),
+            b: fb.clone(),
+            sampling: fb.clone(),
+        };
+        let balanced = MIS {
+            a: fa.clone(),
+            b: fb.clone(),
+            na: 9,
+            nb: 5,
+            heuristic: MISHeuristic::Balance,
+        };
+        let power_mis = MIS {
+            a: fa.clone(),
+            b: fb.clone(),
+            na: 9,
+            nb: 5,
+            heuristic: MISHeuristic::Power,
+        };
+
         let mut file = File::create("data/mis_montecarlo.csv").unwrap();
 
         file.write_all(b"N,Uniform,A,B,Balanced MIS,Power MIS\n")
@@ -122,47 +150,18 @@ mod tests {
             let n = (2 as usize).pow(pow) as usize;
 
             let rng = Rng::new();
-            let uni = ABPdfSingle {
-                a: fa.clone(),
-                b: fb.clone(),
-                sampling: uniform.clone(),
-            };
             let found_uni = uni.integrate(n, rng);
 
             let rng = Rng::new();
-            let a = ABPdfSingle {
-                a: fa.clone(),
-                b: fb.clone(),
-                sampling: fa.clone(),
-            };
             let found_a = a.integrate(n, rng);
 
             let rng = Rng::new();
-            let b = ABPdfSingle {
-                a: fa.clone(),
-                b: fb.clone(),
-                sampling: fb.clone(),
-            };
             let found_b = b.integrate(n, rng);
 
             let rng = Rng::new();
-            let balanced = MIS {
-                a: fa.clone(),
-                b: fb.clone(),
-                na: 9,
-                nb: 5,
-                heuristic: MISHeuristic::Balance,
-            };
             let found_mis = balanced.integrate(n, rng);
 
             let rng = Rng::new();
-            let power_mis = MIS {
-                a: fa.clone(),
-                b: fb.clone(),
-                na: 9,
-                nb: 5,
-                heuristic: MISHeuristic::Power,
-            };
             let found_power_mis = power_mis.integrate(n, rng);
 
             let ln = format!(
