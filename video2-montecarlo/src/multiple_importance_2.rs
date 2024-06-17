@@ -28,75 +28,33 @@ impl MontecarloIntegrable for ABPdfSingle {
     }
 }
 
-struct BalancedPdf {
+enum MISHeuristic {
+    Balance,
+    Power,
+}
+
+struct MIS {
     a: DiscretePdf,
     b: DiscretePdf,
     na: usize,
     nb: usize,
+    heuristic: MISHeuristic,
 }
 
-impl BalancedPdf {
-    fn w(&self, na: usize, pdfa: f64, nb: usize, pdfb: f64) -> f64 {
-        let na = na as f64;
-        let nb = nb as f64;
-        na * pdfa / (nb * pdfb + na * pdfa)
-    }
-}
-
-impl MontecarloIntegrable for BalancedPdf {
-    type T = f64;
-
-    fn sample(&self, _rng: &mut Rng) -> (Self::T, f64) {
-        unreachable!()
-    }
-
-    fn eval(&self, x: Self::T) -> f64 {
-        self.a.pdf(x) * self.b.pdf(x)
-    }
-
-    fn integrate(&self, n: usize, mut rng: Rng) -> f64 {
-        let mut ret = 0.0;
-
-        for _ in 0..n {
-            for _ in 0..self.na {
-                let (x, pax) = self.a.sample(&mut rng);
-                let pbx = self.b.pdf(x);
-                let wa = self.w(self.na, pax, self.nb, pbx);
-                let fx = self.eval(x);
-                ret += wa * fx / pax / (self.na as f64);
-            }
-
-            for _ in 0..self.nb {
-                let (y, pby) = self.b.sample(&mut rng);
-                let fy = self.eval(y);
-                let pay = self.a.pdf(y);
-                let wb = self.w(self.nb, pby, self.na, pay);
-                ret += wb * fy / pby / (self.nb as f64);
-            }
-        }
-
-        ret / n as f64
-    }
-}
-
-struct PowerPdf {
-    a: DiscretePdf,
-    b: DiscretePdf,
-    na: usize,
-    nb: usize,
-}
-
-impl PowerPdf {
+impl MIS {
     fn w(&self, na: usize, pdfa: f64, nb: usize, pdfb: f64) -> f64 {
         let na = na as f64;
         let nb = nb as f64;
         let a = na * pdfa;
         let b = nb * pdfb;
-        a * a / (a * a + b * b)
+        match self.heuristic {
+            MISHeuristic::Balance => a / (a + b),
+            MISHeuristic::Power => a * a / (a * a + b * b),
+        }
     }
 }
 
-impl MontecarloIntegrable for PowerPdf {
+impl MontecarloIntegrable for MIS {
     type T = f64;
 
     fn sample(&self, _rng: &mut Rng) -> (Self::T, f64) {
@@ -131,6 +89,7 @@ impl MontecarloIntegrable for PowerPdf {
         ret / n as f64
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -187,20 +146,22 @@ mod tests {
             let found_b = b.integrate(n, rng);
 
             let rng = Rng::new();
-            let mis = BalancedPdf {
+            let balanced = MIS {
                 a: fa.clone(),
                 b: fb.clone(),
                 na: 9,
                 nb: 5,
+                heuristic: MISHeuristic::Balance,
             };
-            let found_mis = mis.integrate(n, rng);
+            let found_mis = balanced.integrate(n, rng);
 
             let rng = Rng::new();
-            let power_mis = PowerPdf {
+            let power_mis = MIS {
                 a: fa.clone(),
                 b: fb.clone(),
                 na: 9,
                 nb: 5,
+                heuristic: MISHeuristic::Power,
             };
             let found_power_mis = power_mis.integrate(n, rng);
 
