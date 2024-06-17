@@ -1,7 +1,8 @@
 use rand::Rng;
+use std::fmt::Debug;
 
 pub trait MontecarloIntegrable {
-    type T;
+    type T: Debug + Clone;
 
     /// returns a sampled object, and a PDF
     fn sample(&self, rng: &mut Rng) -> (Self::T, f64);

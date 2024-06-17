@@ -3,43 +3,44 @@ use rand::Rng;
 use video1_sampling::step_pdf::DiscretePdf;
 
 struct ABPdfSingle {
-    funcs: Vec<DiscretePdf>,
+    a: DiscretePdf,
+    b: DiscretePdf,
     sampling: DiscretePdf,
 }
 
 impl MontecarloIntegrable for ABPdfSingle {
     type T = f64;
 
-    fn sample(&self, _rng: &mut Rng) -> (Self::T, f64) {
-        unreachable!()
-    }
-
-    fn eval(&self, x: Self::T) -> f64 {
-        let mut ret = 1.0;
-        // the result is the product of all the functions
-        for f in self.funcs.iter() {
-            ret *= f.pdf(x);
+    fn sample(&self, rng: &mut Rng) -> (Self::T, f64) {
+        let ret = self.sampling.sample(rng);
+        if ret.0.is_nan() || ret.1.is_nan() || ret.1 < 1e-7 {
+            dbg!(ret);
         }
         ret
     }
-    fn integrate(&self, n: usize, mut rng: Rng) -> f64 {
-        let mut ret = 0.0;
 
-        for _ in 0..n {
-            let (xij, pij) = self.sampling.sample(&mut rng);
-            let fxij = self.eval(xij);
-
-            ret += fxij / pij;
+    fn eval(&self, x: Self::T) -> f64 {
+        let ret = self.a.pdf(x) * self.b.pdf(x);
+        if ret.is_nan() {
+            dbg!(ret, x, self.a.pdf(x), self.b.pdf(x));
         }
-
-        ret / n as f64
+        ret
     }
 }
 
 struct BalancedPdf {
-    funcs: Vec<DiscretePdf>,
-    sampling: Vec<DiscretePdf>,
-    nsamples: Vec<usize>,
+    a: DiscretePdf,
+    b: DiscretePdf,
+    na: usize,
+    nb: usize,
+}
+
+impl BalancedPdf {
+    fn w(&self, na: usize, pdfa: f64, nb: usize, pdfb: f64) -> f64 {
+        let na = na as f64;
+        let nb = nb as f64;
+        na * pdfa / (nb * pdfb + na * pdfa)
+    }
 }
 
 impl MontecarloIntegrable for BalancedPdf {
@@ -50,39 +51,27 @@ impl MontecarloIntegrable for BalancedPdf {
     }
 
     fn eval(&self, x: Self::T) -> f64 {
-        let mut ret = 1.0;
-        // the result is the product of all the functions
-        for f in self.funcs.iter() {
-            ret *= f.pdf(x);
-        }
-        ret
+        self.a.pdf(x) * self.b.pdf(x)
     }
+
     fn integrate(&self, n: usize, mut rng: Rng) -> f64 {
         let mut ret = 0.0;
 
         for _ in 0..n {
-            for i in 0..self.sampling.len() {
-                // Check how many samples from this distribution
-                let ni = self.nsamples[i];
-                // For each sample for this function
-                for _j in 0..ni {
-                    // Draw a Sample
-                    let (xij, pij) = self.sampling[i].sample(&mut rng);
-                    // Calculate the function
-                    let fxij = self.eval(xij);
+            for _ in 0..self.na {
+                let (x, pax) = self.a.sample(&mut rng);
+                let pbx = self.b.pdf(x);
+                let wa = self.w(self.na, pax, self.nb, pbx);
+                let fx = self.eval(x);
+                ret += wa * fx / pax / (self.na as f64);
+            }
 
-                    // Calculate weight
-
-                    let mut wj_denom = 0.0;
-                    for k in 0..self.sampling.len() {
-                        let pk = self.funcs[k].pdf(xij);
-                        let nk = self.nsamples[k];
-                        wj_denom += nk as f64 * pk;
-                    }
-                    let wij = ni as f64 * pij / wj_denom;
-                    // Add to montecarlo estimator
-                    ret += wij * fxij / (pij * ni as f64);
-                }
+            for _ in 0..self.nb {
+                let (y, pby) = self.b.sample(&mut rng);
+                let fy = self.eval(y);
+                let pay = self.a.pdf(y);
+                let wb = self.w(self.nb, pby, self.na, pay);
+                ret += wb * fy / pby / (self.nb as f64);
             }
         }
 
@@ -90,56 +79,141 @@ impl MontecarloIntegrable for BalancedPdf {
     }
 }
 
+struct PowerPdf {
+    a: DiscretePdf,
+    b: DiscretePdf,
+    na: usize,
+    nb: usize,
+}
+
+impl PowerPdf {
+    fn w(&self, na: usize, pdfa: f64, nb: usize, pdfb: f64) -> f64 {
+        let na = na as f64;
+        let nb = nb as f64;
+        let a = na * pdfa;
+        let b = nb * pdfb;
+        a * a / (a * a + b * b)
+    }
+}
+
+impl MontecarloIntegrable for PowerPdf {
+    type T = f64;
+
+    fn sample(&self, _rng: &mut Rng) -> (Self::T, f64) {
+        unreachable!()
+    }
+
+    fn eval(&self, x: Self::T) -> f64 {
+        self.a.pdf(x) * self.b.pdf(x)
+    }
+
+    fn integrate(&self, n: usize, mut rng: Rng) -> f64 {
+        let mut ret = 0.0;
+
+        for _ in 0..n {
+            for _ in 0..self.na {
+                let (x, pax) = self.a.sample(&mut rng);
+                let pbx = self.b.pdf(x);
+                let wa = self.w(self.na, pax, self.nb, pbx);
+                let fx = self.eval(x);
+                ret += wa * fx / pax / (self.na as f64);
+            }
+
+            for _ in 0..self.nb {
+                let (y, pby) = self.b.sample(&mut rng);
+                let fy = self.eval(y);
+                let pay = self.a.pdf(y);
+                let wb = self.w(self.nb, pby, self.na, pay);
+                ret += wb * fy / pby / (self.nb as f64);
+            }
+        }
+
+        ret / n as f64
+    }
+}
 #[cfg(test)]
 mod tests {
-
     use super::*;
+    use std::fs::File;
+    use std::io::prelude::*;
 
     #[test]
-    fn multiple_importance_balanced() {
-        let fa = DiscretePdf::new(0.0, vec![0.5, 1.0], vec![0.1, 1.9]);
-        let fb = DiscretePdf::new(0.0, vec![0.5, 1.0], vec![1.9, 0.1]);
+    fn multiple_importance() {
+        const EXPECTED: f64 = 0.8448;
+        fn error(v: f64) -> f64 {
+            (v - EXPECTED).abs() / EXPECTED
+        }
+        let fa = DiscretePdf::new(
+            0.0,
+            vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+            vec![0.5, 1.4, 3.2, 3.0, 0.5, 0.1, 0.1, 0.5, 0.1, 0.6],
+        );
+        let fb = DiscretePdf::new(
+            0.0,
+            vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+            vec![2.0, 1.0, 0.8, 0.1, 0.02, 0.04, 0.1, 4.0, 0.0, 1.94],
+        );
+        let uniform = DiscretePdf::new(0.0, vec![1.0], vec![1.]);
 
-        println!("N,Uniform,A,B,MIS");
+        let mut file = File::create("data/mis_montecarlo.csv").unwrap();
+
+        file.write_all(b"N,Uniform,A,B,Balanced MIS,Power MIS\n")
+            .unwrap();
         for pow in 1..16 {
             let n = (2 as usize).pow(pow) as usize;
 
             let rng = Rng::new();
-            let uni = BalancedPdf {
-                funcs: vec![fa.clone(), fb.clone()],
-                sampling: vec![DiscretePdf::new(0.0, vec![1.0], vec![1.0])],
-                nsamples: vec![1],
+            let uni = ABPdfSingle {
+                a: fa.clone(),
+                b: fb.clone(),
+                sampling: uniform.clone(),
             };
             let found_uni = uni.integrate(n, rng);
 
             let rng = Rng::new();
-            let a = BalancedPdf {
-                funcs: vec![fa.clone(), fb.clone()],
-                sampling: vec![fa.clone()],
-                nsamples: vec![1],
+            let a = ABPdfSingle {
+                a: fa.clone(),
+                b: fb.clone(),
+                sampling: fa.clone(),
             };
             let found_a = a.integrate(n, rng);
 
             let rng = Rng::new();
-            let b = BalancedPdf {
-                funcs: vec![fa.clone(), fb.clone()],
-                sampling: vec![fb.clone()],
-                nsamples: vec![1],
+            let b = ABPdfSingle {
+                a: fa.clone(),
+                b: fb.clone(),
+                sampling: fb.clone(),
             };
             let found_b = b.integrate(n, rng);
 
             let rng = Rng::new();
             let mis = BalancedPdf {
-                funcs: vec![fa.clone(), fb.clone()],
-                sampling: vec![fa.clone(), fb.clone()],
-                nsamples: vec![1, 1],
+                a: fa.clone(),
+                b: fb.clone(),
+                na: 9,
+                nb: 5,
             };
             let found_mis = mis.integrate(n, rng);
 
-            println!(
-                "{},{:.3},{:.3},{:.3},{:.3}",
-                pow, found_uni, found_a, found_b, found_mis
+            let rng = Rng::new();
+            let power_mis = PowerPdf {
+                a: fa.clone(),
+                b: fb.clone(),
+                na: 9,
+                nb: 5,
+            };
+            let found_power_mis = power_mis.integrate(n, rng);
+
+            let ln = format!(
+                "{},{:.3},{:.3},{:.3},{:.3},{:.3}\n",
+                pow,
+                error(found_uni),
+                error(found_a),
+                error(found_b),
+                error(found_mis),
+                error(found_power_mis),
             );
+            file.write_all(ln.as_bytes()).unwrap();
         }
     }
 }

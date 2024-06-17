@@ -47,9 +47,8 @@ impl DiscretePdf {
         );
         loop {
             count += 1;
-            if count > 1000 {
-                panic!("Too many iterations");
-            }
+            assert!(count < 1000, "Too many iterations in inv(cdf)");
+
             let x = (min + max) / 2.0;
             let (found_y, found_pdf) = self.cdf(x);
             let err = (y - found_y).abs();
@@ -65,8 +64,18 @@ impl DiscretePdf {
     }
 
     pub fn sample(&self, rng: &mut Rng) -> (f64, f64) {
-        let x = rng.next_float();
-        self.inv_cdf(x)
+        let mut count = 0;
+        loop {
+            count += 1;
+            assert!(count < 1000, "Too many iterations in sample");
+            let x = rng.next_float();
+            let (v, pdf) = self.inv_cdf(x);
+            if pdf < 1e-9 {
+                continue;
+            } else {
+                return (v, pdf);
+            }
+        }
     }
 
     pub fn pdf(&self, x: f64) -> f64 {
