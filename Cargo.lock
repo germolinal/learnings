@@ -32,3 +32,10 @@ dependencies = [
  "rand",
  "video1-sampling",
 ]
+
+[[package]]
+name = "video4-hemispheres"
+version = "0.1.0"
+dependencies = [
+ "rand",
+]
