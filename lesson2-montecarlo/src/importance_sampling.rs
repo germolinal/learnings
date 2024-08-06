@@ -1,6 +1,6 @@
 use crate::montecarlo_integrable::MontecarloIntegrable;
+use lesson1_sampling::step_pdf::DiscretePdf;
 use rand::Rng;
-use video1_sampling::step_pdf::DiscretePdf;
 
 fn exp(x: f64) -> f64 {
     (-1000.0 * (x - 0.5).powi(2)).exp()

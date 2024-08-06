@@ -1,7 +1,7 @@
 use std::{thread, time::Duration};
 
+use lesson1_sampling::step_pdf::DiscretePdf;
 use rand::Rng;
-use video1_sampling::step_pdf::DiscretePdf;
 
 pub struct MIS {
     a: DiscretePdf,

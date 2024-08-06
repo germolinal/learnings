@@ -7,35 +7,35 @@ name = "learning"
 version = "0.1.0"
 
 [[package]]
+name = "lesson1-sampling"
+version = "0.1.0"
+dependencies = [
+ "rand",
+]
+
+[[package]]
+name = "lesson2-montecarlo"
+version = "0.1.0"
+dependencies = [
+ "lesson1-sampling",
+ "rand",
+]
+
+[[package]]
+name = "lesson3-russian-roulette"
+version = "0.1.0"
+dependencies = [
+ "lesson1-sampling",
+ "rand",
+]
+
+[[package]]
+name = "lesson4-hemispheres"
+version = "0.1.0"
+dependencies = [
+ "rand",
+]
+
+[[package]]
 name = "rand"
 version = "0.1.0"
-
-[[package]]
-name = "video1-sampling"
-version = "0.1.0"
-dependencies = [
- "rand",
-]
-
-[[package]]
-name = "video2-montecarlo"
-version = "0.1.0"
-dependencies = [
- "rand",
- "video1-sampling",
-]
-
-[[package]]
-name = "video3-russian-roulette"
-version = "0.1.0"
-dependencies = [
- "rand",
- "video1-sampling",
-]
-
-[[package]]
-name = "video4-hemispheres"
-version = "0.1.0"
-dependencies = [
- "rand",
-]

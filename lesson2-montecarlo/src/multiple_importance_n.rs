@@ -1,6 +1,6 @@
 // use crate::montecarlo_integrable::MontecarloIntegrable;
 // use rand::Rng;
-// use video1_sampling::step_pdf::DiscretePdf;
+// use lesson1_sampling::step_pdf::DiscretePdf;
 
 // struct ABPdfSingle {
 //     funcs: Vec<DiscretePdf>,

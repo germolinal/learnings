@@ -51,7 +51,10 @@ mod tests {
     fn overcast_sky(v: Vector3D) -> f64 {
         (1. + 2. * v.z.abs()) / 3.
     }
+
+    #[allow(dead_code)]
     const EXPECTED_UNIFORM: f64 = PI;
+    #[allow(dead_code)]
     fn uniform_sky(_v: Vector3D) -> f64 {
         1.
     }

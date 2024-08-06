@@ -7,10 +7,10 @@ edition = "2021"
 [workspace]
 members = [
     "rand",
-    "video1-sampling",
-    "video2-montecarlo",
-    "video3-russian-roulette",
-    "video4-hemispheres",
+    "lesson1-sampling",
+    "lesson2-montecarlo",
+    "lesson3-russian-roulette",
+    "lesson4-hemispheres",
 ]
 
 

@@ -1,6 +1,6 @@
 use crate::montecarlo_integrable::MontecarloIntegrable;
+use lesson1_sampling::step_pdf::DiscretePdf;
 use rand::Rng;
-use video1_sampling::step_pdf::DiscretePdf;
 
 struct MISSingle {
     a: DiscretePdf,
